@@ -40,3 +40,5 @@ To generate the melody in midi format
 To play the midi file there is no pre-installed pulgin in Ubuntu 16.04
 # Download the following tool
 * sudo apt-get install timidity timidity-interfaces-extra 
+# To play an mid file in Timidity
+* file > load > <location_of_file>

@@ -37,8 +37,14 @@ To generate the melody in midi format
 * sudo chmod +x script_wav_midi.sh
 * ./script_wav_midi.sh
 
-To play the midi file there is no pre-installed pulgin in Ubuntu 16.04
-# Download the following tool
+# To play the midi file there is no pre-installed pulgin in Ubuntu 16.04
+  Download the following tool
 * sudo apt-get install timidity timidity-interfaces-extra 
 # To play an mid file in Timidity
 * file > load > <location_of_file>
+
+# To manipulate the audio pieces we can use pydub
+* https://github.com/jiaaro/pydub
+* It requires ffmpeg OR libav for manipulation of mp3 files
+* sudo apt-get install libav-tools 
+* sudo apt-get install ffmpeg
