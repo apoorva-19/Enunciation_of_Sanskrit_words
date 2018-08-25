@@ -72,3 +72,12 @@ Download the following tool
 `sudo apt-get install libav-tools`
 
 `sudo apt-get install ffmpeg`
+
+## To split the shloka in anushthup format
+* You will have to use python3.6 as cltk supports only that version
+
+`python Transliteration.py <location_of_shloka_file> <location_of_split_file>`
+
+* Example:
+
+`python Transliteration.py bhagvad_gita/original/12.txt bhagvad_gita/split/12.txt`
