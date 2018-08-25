@@ -1,8 +1,10 @@
 MELODIA has been tested for python2.7. Hence we need to make a virtual environment to run python2.7 and the other dependencies.
 ## To create virutalenv
-`python2.7 -m pip install virtualenv`
+```
+python2.7 -m pip install virtualenv
 
-`python2.7 -m virtualenv sanskrit`
+python2.7 -m virtualenv sanskrit
+```
 
 ### To run the virtual environemnt
 
@@ -43,18 +45,22 @@ There is a list of the libraries required in the requirements.txt file.
 
 ### The extraction also returns a .jams file which can be moved to another folder
 
-`mkdir jams`
+```
+mkdir jams
 
-`cd midi`
+cd midi
 
-` mv *.jams ../jams`
+mv *.jams ../jams
+```
 
 ## To extract the melodies from multiple wav files there is a script - script_wav_midi.sh
 ### To run the file use the following commands
 
-`sudo chmod +x script_wav_midi.sh`
+```
+sudo chmod +x script_wav_midi.sh
 
-`./script_wav_midi.sh`
+./script_wav_midi.sh
+```
 
 ## To play the midi file there is no pre-installed pulgin in Ubuntu 16.04
 Download the following tool
@@ -69,9 +75,11 @@ Download the following tool
 * https://github.com/jiaaro/pydub
 * It requires ffmpeg OR libav for manipulation of mp3 files
 
-`sudo apt-get install libav-tools`
-
-`sudo apt-get install ffmpeg`
+```
+sudo apt-get install libav-tools
+            or
+sudo apt-get install ffmpeg
+```
 
 ## To split the shloka in anushthup format
 * You will have to use python3.6 as cltk supports only that version
