@@ -89,3 +89,11 @@ sudo apt-get install ffmpeg
 * Example:
 
 `python Transliteration.py bhagvad_gita/original/12.txt bhagvad_gita/split/12.txt`
+
+## To extract unique words from the text file of shlokas
+
+`python uniquewords.py <location_of_shloka_file>`
+
+* Example:
+
+`python uniquewords.py bhagvad_gita/split/12.txt`
