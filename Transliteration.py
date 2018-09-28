@@ -11,11 +11,15 @@ Created on Mon Jul 30 22:01:41 2018
 from cltk.corpus.sanskrit.itrans.unicode_transliterate import ItransTransliterator
 from cltk.tokenize.sentence import TokenizeSentence
 from cltk.stem.sanskrit.indian_syllabifier import Syllabifier
+from indic_transliteration import sanscript
+from indic_transliteration.sanscript import SchemeMap, SCHEMES, transliterate
 
 lang = 'hi'
 language = 'hindi'
 tokenizer = TokenizeSentence('sanskrit')
 syl = Syllabifier(language)
+check_phonemes_1 = ['ः', 'ऽ']
+check_phonemes_2 = ['ङ्‍', '\u200c']
 
 if __name__ == '__main__':
     import sys
@@ -39,6 +43,17 @@ def check_token(token):
 
     return flag
 
+#due to the presence of : and other conjuct consonants as well as special matras, the word is sometimes split 
+#incorrectly hence to avoid that the followig function checks the proximity of the splitting position to the 
+#purna_viram. If there is a single phoneme which might be considered as one or two phonemes depending on 
+#transliteration done by ITRANS
+
+def check_proximity(split, pos, next_token):
+    if len(split) - pos in range(1,3):
+        if next_token == '।':
+            return False
+
+    return True
 
 infilename = sys.argv[1]
 outfilename = sys.argv[2]
@@ -67,6 +82,10 @@ for shlok in filestring:
         token = t_shlok[i]
         split = syl.orthographic_syllabify(token)
         l = len(split)
+        if '\u200c' in split:
+            l -= 2
+        if 'ः' in split:
+            l -= 1
         #phonemes already covered
         prev = count
         #checking for purna-viram and numbers
@@ -75,27 +94,57 @@ for shlok in filestring:
             continue
         #more phonemes added
         count = count + l
+        #word extends the meter length
         if count > 8:
-            #checks for the presence of rafar on the last phoneme
-            trans_token = ItransTransliterator.to_itrans(split[8 - prev - 1], lang)
-            if trans_token.startswith('r') and len(trans_token) > 1:
-                #shifting the last phoneme to the next word
-                diff = l - 8 + prev + 1
-                #position for splitting the word
-                pos = 8 - prev + 1
-            else:
-                #rafar not present
-                diff = l - 8 + prev
-                #position to split the word
-                pos = 8 - prev
-                #set the count to 0
-                count = 0
+            #rafar not present
+            diff = l - 8 + prev
+            #position to split the word
+            pos = 8 - prev
+            #set the count to 0
+            count = 0
+            #checks for the presence of rafar on the last phoneme. Here the phoneme should be split in such a way that
+            # र् with a halant should be connected to the previous word and the phoneme without the rafar to the
+            #next word
+            #converting the string to roman script from devanagri script
+            trans_token = ItransTransliterator.to_itrans(split[pos], lang)
+            if trans_token.startswith('r') and trans_token.startswith('ra') != True:
+                #add the character to the phoneme
+                split[pos-1] = split[pos-1] + 'र्'
+                #extracting the character from the second phoneme
+                replace_phoneme = trans_token.replace("r", "")
+                #converting the string from roman script to devnagari script
+                split[pos] = transliterate(replace_phoneme, sanscript.ITRANS, sanscript.DEVANAGARI)
+        #word equal to meter length
         elif count == 8:
             count = 0
+
         while diff > 0:
             #splitting the word
-            if pos != l - 1:
-                split.insert(pos, '-')
+            if token.find('ऽ') <= pos and token.find('ऽ') > -1:
+                    pos += 1*token.count('ऽ')
+            #This rule is incorrect. Come to this and fix this later if it creates problems in other cases.
+            if token.find('ऽ') > pos and l-token.find('ऽ') < 3:
+                pos += 1*token.count('ऽ')
+            #the find function is unable to find the character 'ङ्' if not for this way
+            if token.find("ङ्\u200d") <= pos and token.find("ङ्\u200d") > -1:
+                    pos += 2
+            if pos <= l-1:
+                #checking for the presence of the  'ः'(.h) matra
+                if split[pos] != 'ः':
+                    #checking the proximity with the purna-viram
+                    if check_proximity(split, pos, t_shlok[i+1]):
+                        split.insert(pos, '-')
+                        #checking for the presence of multiple half character phoneme near the position where the word
+                        #has been split. Usually if the number characters in the next phoneme after '-' is 6 or more 
+                        #then there is a very good possibility that there are aleast two half characters in the 
+                        #phoneme
+                        if len(split[pos+1]) > 5:
+                            #here the consonant and the halant are considered as two different characters hence
+                            #two characters need to be extracted and appended at the end of the phoneme before the '-'
+                            #attaching the two characters to the phoneme before '-'
+                            split[pos-1] = split[pos-1] + split[pos+1][0:2]
+                            #removing those two characters from the phoneme after '-'
+                            split[pos+1] = split[pos+1].replace(split[pos+1][0:2], "")
             #joining a word
             token = ''.join(map(str, split))
             # split it again to break the word again
@@ -112,9 +161,4 @@ for shlok in filestring:
     broken = ' '.join(map(str, t_shlok))
     outfile.write(broken + "\n")
 
-outfile.close()
-
-# trans_shlok = {ItransTransliterator.to_itrans(word,lang) for word in t_shlok}
-
-# for t_word in trans_shlok:
-#    print(t_word)
+outfile.close() 
