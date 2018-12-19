@@ -50,7 +50,7 @@ def check_token(token):
 
 def check_proximity(split, pos, next_token):
     if len(split) - pos in range(1,3):
-        if next_token == '।':
+        if next_token == '।' or next_token == '॥' or ItransTransliterator.to_itrans(next_token, lang).isdigit:
             return False
 
     return True
@@ -70,7 +70,6 @@ while string:
 infile.close()
 outfile = open(outfilename, "w")
 
-# shlok = u'एवं सततयुक्ता ये भक्तास्त्वां पर्युपासते। येचाप्यक्षरमव्यक्तं तेषां के योगवित्तमाः।।12.1।।'
 for shlok in filestring:
         # picking one shloka from the file
     t_shlok = tokenizer.tokenize(shlok)
@@ -84,8 +83,6 @@ for shlok in filestring:
         l = len(split)
         if '\u200c' in split:
             l -= 2
-        if 'ः' in split:
-            l -= 1
         #phonemes already covered
         prev = count
         #checking for purna-viram and numbers
@@ -94,6 +91,9 @@ for shlok in filestring:
             continue
         #more phonemes added
         count = count + l
+        print(count)
+        print(l)
+        print(split)
         #word extends the meter length
         if count > 8:
             #rafar not present
@@ -121,10 +121,12 @@ for shlok in filestring:
         while diff > 0:
             #splitting the word
             if token.find('ऽ') <= pos and token.find('ऽ') > -1:
-                    pos += 1*token.count('ऽ')
+                    pos += token.count('ऽ')
             #This rule is incorrect. Come to this and fix this later if it creates problems in other cases.
-            if token.find('ऽ') > pos and l-token.find('ऽ') < 3:
-                pos += 1*token.count('ऽ')
+            # if token.find('ऽ') > pos and l-token.find('ऽ') < 3:
+            #     pos += token.count('ऽ')
+            if token.find('ः') <=pos and token.find('ः') > -1:
+                pos +=token.count('ः')
             #the find function is unable to find the character 'ङ्' if not for this way
             if token.find("ङ्\u200d") <= pos and token.find("ङ्\u200d") > -1:
                     pos += 2
@@ -134,11 +136,16 @@ for shlok in filestring:
                     #checking the proximity with the purna-viram
                     if check_proximity(split, pos, t_shlok[i+1]):
                         split.insert(pos, '-')
-                        #checking for the presence of multiple half character phoneme near the position where the word
-                        #has been split. Usually if the number characters in the next phoneme after '-' is 6 or more 
-                        #then there is a very good possibility that there are aleast two half characters in the 
-                        #phoneme
-                        if len(split[pos+1]) > 5:
+                        #checking for the presence of half character phonemes near the position where the word
+                        #has been split. 
+                        if len(split[pos+1]) > 3:
+                            print(split[0])
+                            print(split[1])
+                            print(split[2])
+                            print(split[3])
+                            print(len(split[pos+1]))
+                            print(split[pos])
+                            print("here")
                             #here the consonant and the halant are considered as two different characters hence
                             #two characters need to be extracted and appended at the end of the phoneme before the '-'
                             #attaching the two characters to the phoneme before '-'
