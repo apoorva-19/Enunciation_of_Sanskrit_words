@@ -1,39 +1,20 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Mon Jul 30 22:01:41 2018
-
-@author: apoorva
-"""
-# to run you first need to install cltk
-# pip install cltk
-
 from cltk.corpus.sanskrit.itrans.unicode_transliterate import ItransTransliterator
 from cltk.tokenize.sentence import TokenizeSentence
 from cltk.stem.sanskrit.indian_syllabifier import Syllabifier
-from indic_transliteration import sanscript
-from indic_transliteration.sanscript import SchemeMap, SCHEMES, transliterate
 
 lang = "hi"
 language = "hindi"
 tokenizer = TokenizeSentence("sanskrit")
 syl = Syllabifier(language)
-check_phonemes_1 = ["ः", "ऽ"]
-check_phonemes_2 = ["ङ्‍", "\u200c"]
 
-if __name__ == "__main__":
-    import sys
+#List of phonemes that should not be counted as separate diphones while splitting
+check_phonemes_1 = ["ः", "ऽ", "ङ्‍\u200d"]
+check_phonemes_2 = ["\u200c"]
 
-if len(sys.argv) == 1:
-    print("Needs filename for splitting shlokas")
-    sys.exit(-1)
-elif len(sys.argv) == 2:
-    print("Needs filename for storing split shlokas")
-    sys.exit(-1)
+#List of characters that should be taken to the left in case they are present to the right while splitting
+move_left_1 = ['म्','र्','न्']
 
-# to avoid numbers and punctuation marks
-
-
+#Checking for numbers and purna-viram
 def check_token(token):
     flag = True
     if token == "।":
@@ -43,127 +24,137 @@ def check_token(token):
 
     return flag
 
-
-# due to the presence of : and other conjuct consonants as well as special matras, the word is sometimes split
-# incorrectly hence to avoid that the followig function checks the proximity of the splitting position to the
-# purna_viram. If there is a single phoneme which might be considered as one or two phonemes depending on
-# transliteration done by ITRANS
-
-
+#Checking for splitting position 
 def check_proximity(split, pos, next_token):
     if len(split) - pos in range(1, 3):
-        if (
-            next_token == "।"
-            or next_token == "॥"
-            or ItransTransliterator.to_itrans(next_token, lang).isdigit
-        ):
+        if (next_token == "।" or next_token == "॥"):
             return False
 
     return True
 
+#Checking for the presence of phonemes in check_phonemes_1 and check_phonemes_2
+def check_internally(split, pos):
+    print(pos)
+    for ph in check_phonemes_1:
+        if split.count(ph) > 0:
+            pos += split.count(ph)
 
-infilename = sys.argv[1]
-outfilename = sys.argv[2]
-filestring = []
+    #presence of \u200c means that the word/phrase ends in a half character
+    for ph in check_phonemes_2:
+        if split.count(ph) > 0:
+            pos += 2*split.count(ph)
+    print (split)
+    print (pos)
+    return pos
 
-infile = open(infilename, "r")
+if __name__ == "__main__":
+    import sys
 
-string = infile.readline()
-while string:
-    string = string[:-1]
-    filestring.append(string)
+    if len(sys.argv) == 1:
+        print("Needs filename for splitting shlokas and for storing split shlokas")
+        sys.exit(-1)
+    elif len(sys.argv) == 2:
+        print("Needs filename for storing split shlokas")
+        sys.exit(-1)
+
+    #Accepting user input
+    infilename = sys.argv[1]
+    outfilename = sys.argv[2]
+    filestring = []
+
+    infile = open(infilename, "r")
+
     string = infile.readline()
+    while string:
+        string = string[:-1]
+        filestring.append(string)
+        string = infile.readline()
 
-infile.close()
-outfile = open(outfilename, "w")
+    infile.close()
+    outfile = open(outfilename, "w")
 
-for shlok in filestring:
-    # picking one shloka from the file
-    t_shlok = tokenizer.tokenize(shlok)
-    # initializing the flags
-    count = 0  # to count the number of phonemes after which the split has to be done
-    pos = 0  # to insert the -
-    diff = 0  # to keep track of the overflow phonemes
-    for i in range(len(t_shlok)):
-        token = t_shlok[i]
-        split = syl.orthographic_syllabify(token)
-        l = len(split)
-        if "\u200c" in split:
-            l -= 2
-        # phonemes already covered
-        prev = count
-        # checking for purna-viram and numbers
-        if l == 1 and check_token(token) == False:
-            diff = pos = count = 0
-            continue
-        # more phonemes added
-        count = count + l
-        # word extends the meter length
-        if count > 8:
-            # rafar not present
-            diff = l - 8 + prev
-            # position to split the word
-            pos = 8 - prev
-            # set the count to 0
-            count = 0
-            # checks for the presence of rafar on the last phoneme. Here the phoneme should be split in such a way that
-            # र् with a halant should be connected to the previous word and the phoneme without the rafar to the
-            # next word
-            # converting the string to roman script from devanagri script
-            trans_token = ItransTransliterator.to_itrans(split[pos], lang)
-            if trans_token.startswith("r") and trans_token.startswith("ra") != True:
-                # add the character to the phoneme
-                split[pos - 1] = split[pos - 1] + "र्"
-                # extracting the character from the second phoneme
-                replace_phoneme = trans_token.replace("r", "")
-                # converting the string from roman script to devnagari script
-                split[pos] = transliterate(
-                    replace_phoneme, sanscript.ITRANS, sanscript.DEVANAGARI
-                )
-        # word equal to meter length
-        elif count == 8:
-            count = 0
+    for shlok in filestring:
+        
+        #picking one shloka from the file
+        t_shlok = tokenizer.tokenize(shlok)
+        #initializing the flags
+        count = 0 # to count the number of phonemes after which the split has to be done
+        pos = 0 # to insert the - 
+        diff = 0 # to keep track of the overflow phonemes
 
-        while diff > 0:
-            # splitting the word
-            if token.find("ऽ") <= pos and token.find("ऽ") > -1:
-                pos += token.count("ऽ")
-            if token.find("ः") <= pos and token.find("ः") > -1:
-                pos += token.count("ः")
-            # the find function is unable to find the character 'ङ्' if not for this way
-            if token.find("ङ्\u200d") <= pos and token.find("ङ्\u200d") > -1:
-                pos += 2
-            if pos <= l - 1:
-                # checking for the presence of the  'ः'(.h) matra
-                if split[pos] != "ः":
-                    # checking the proximity with the purna-viram
-                    if check_proximity(split, pos, t_shlok[i + 1]):
-                        split.insert(pos, "-")
-                        # checking for the presence of half character phonemes near the position where the word
-                        # has been split.
-                        if len(split[pos + 1]) > 3:
-                            # here the consonant and the halant are considered as two different characters hence
-                            # two characters need to be extracted and appended at the end of the phoneme before the '-'
-                            # attaching the two characters to the phoneme before '-'
-                            split[pos - 1] = split[pos - 1] + split[pos + 1][0:2]
-                            # removing those two characters from the phoneme after '-'
-                            split[pos + 1] = split[pos + 1].replace(
-                                split[pos + 1][0:2], ""
-                            )
-            # joining a word
-            token = "".join(map(str, split))
-            # split it again to break the word again
+        for i in range(len(t_shlok)):
+            token = t_shlok[i]
             split = syl.orthographic_syllabify(token)
-            if diff <= 8:
-                count = diff
-                pos = diff = 0
-                t_shlok[i] = "".join(map(str, split))
+            l = len(split)
+            
+            # phonemes already covered
+            prev = count
+
+            #checking for purna-viram and numbers
+            if l == 1 and check_token(token) == False:
+                diff = pos = count = 0
+                continue
+
+            # more phonemes added
+            count = count + l
+            
+            # word extends the meter length
+            if count > 8:                
+                # calculates the position for split after checking the internal characters
+                pos = check_internally(split[0:8-prev+1], 8-prev)                
+                #calculates the overflow phonemes from the current word                
+                diff = l - pos
+
+                count = 0
+
+            elif count == 8:
+                count = 0
+            
             else:
-                diff = diff - 8
-                pos = pos + 8
+                count = count - check_internally(split, 0)
+            while diff > 0:
+                if check_proximity(split, pos, t_shlok[i+1]):
+                    print(count)
+                    print(pos)
+                    split.insert(pos, '-')
+                    if len(split[pos+1]) > 1:
+                        if split[pos+1].count('्') == 1 and split[pos+1][0:2] in move_left_1:
+                            #move the half character to the left
+                            #here the half character is a combination of the full character and a halant
+                            split[pos - 1] = split[pos - 1] + split[pos + 1][0:2]
+                            split[pos + 1] = split[pos + 1].replace(split[pos + 1][0:2], "")
+                            #when it is split again the half character will be counted separately
+                            pos += 1
+                        
+                        elif split[pos+1].count('्') > 1:
+                            #more than one half characters are present here
+                            #move the first half character to the left irrespective of the character being in the move_left list or not
+                            #here the half character is a combination of the full character and a halant
+                            split[pos - 1] = split[pos - 1] + split[pos + 1][0:2]
+                            split[pos + 1] = split[pos + 1].replace(split[pos + 1][0:2], "")
+                            #when it is split again the half character will be counted separately
+                            pos += 1
+                    #pos is incremented to account for the dash that has been added
+                    pos += 1
+                # joining a word
+                token = "".join(map(str, split))
+                # split it again to break the word again
+                split = syl.orthographic_syllabify(token)
+                if diff < 8:
+                    count = diff
+                    pos = diff = 0
+                    t_shlok[i] = "".join(map(str, split))
+                elif diff > 8:
+                    diff = diff - 8
+                    pos = pos + 8
+                else:
+                    diff = 0
+                    t_shlok[i] = "".join(map(str, split))
+                print (split)
+                print ("diff: {}, count: {}, pos:{}".format(diff, count, pos))
 
-        # joining the words together to form the shloka
-    broken = " ".join(map(str, t_shlok))
-    outfile.write(broken + "\n")
+            # joining the words together to form the shloka
+        broken = " ".join(map(str, t_shlok))
+        outfile.write(broken + "\n")
 
-outfile.close()
+    outfile.close()      
