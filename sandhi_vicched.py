@@ -34,7 +34,6 @@ def check_proximity(split, pos, next_token):
 
 #Checking for the presence of phonemes in check_phonemes_1 and check_phonemes_2
 def check_internally(split, pos):
-    print(pos)
     for ph in check_phonemes_1:
         if split.count(ph) > 0:
             pos += split.count(ph)
@@ -43,8 +42,6 @@ def check_internally(split, pos):
     for ph in check_phonemes_2:
         if split.count(ph) > 0:
             pos += 2*split.count(ph)
-    print (split)
-    print (pos)
     return pos
 
 if __name__ == "__main__":
@@ -114,8 +111,6 @@ if __name__ == "__main__":
                 count = count - check_internally(split, 0)
             while diff > 0:
                 if check_proximity(split, pos, t_shlok[i+1]):
-                    print(count)
-                    print(pos)
                     split.insert(pos, '-')
                     if len(split[pos+1]) > 1:
                         if split[pos+1].count('्') == 1 and split[pos+1][0:2] in move_left_1:
@@ -150,8 +145,8 @@ if __name__ == "__main__":
                 else:
                     diff = 0
                     t_shlok[i] = "".join(map(str, split))
-                print (split)
-                print ("diff: {}, count: {}, pos:{}".format(diff, count, pos))
+                # print (split)
+                # print ("diff: {}, count: {}, pos:{}".format(diff, count, pos))
 
             # joining the words together to form the shloka
         broken = " ".join(map(str, t_shlok))
